@@ -12,8 +12,8 @@ Branch: `device/exynos2100-g78`.
 | Component | Exact compilation source |
 |---|---|
 | Chosen upstream v1.6.0 | `58f2c55854bd48b18df756edb11f187af9cd2fde` |
-| Baseline (build-only NDK compatibility patch, no driver-core change) | `2dcc5f8920` (full hash in git history) |
-| Tested/packaged Android driver | `497c27a3422a` (full hash in ZIP build-manifest.json) |
+| Baseline (build-only NDK compatibility patch, no driver-core change) | `2dcc5f89202b5f593c7a3f10a45bc4080ffdcd19` |
+| Tested/packaged Android driver | `497c27a3422a178d83f7e9f181b1a036490a1b5c` |
 | Tested Linux glibc driver | `ab86f464134a8b04dabd463ec5d66f81cf19ffd9` |
 
 The Android driver's later packaging/integration revision is recorded separately
@@ -105,9 +105,13 @@ then does ten create/present-10/destroy swapchain cycles: **520 frames per run**
 It passed initial and repeated custom launches, and the stock/custom A/B run.
 Typical recorded frame rates were about 60–61 FPS, **display/FIFO limited**;
 these are not throughput benchmarks or a demonstrated performance improvement.
+The final signed APK also passed paired stock/custom runs on a 1080x2209 surface
+at about 120 FPS (stock 120.5, PanVK 119.8 on one main phase). That pair is also
+refresh-limited and does not establish a statistically meaningful difference.
 
 Display audit identified a **1920x1080 scrcpy virtual display**. This is successful
-Android surface presentation, not qualification of physical HDMI/USB-C DeX.
+Android surface presentation (plus the later 1080x2209 path), not qualification
+of physical HDMI/USB-C DeX.
 
 ### Native Linux path
 

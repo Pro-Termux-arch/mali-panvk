@@ -41,3 +41,11 @@
 * Real output PPMs from stock, baseline, modified Android and native Linux were
   byte-identical. Only the tiny synthetic image and sanitized summaries are
   published; raw device, display, kernel and package logs remain ignored.
+* Final APK built from clean integration commit 5aed414 and verified the same
+  Android driver SHA as the ZIP. Both stock/custom surface tests passed again,
+  including a 1080x2209, 120 Hz path. 12 host tests passed, including real-artifact
+  verification, deliberate corruption rejection and unsafe-path rejection.
+* The initial reference cache was a partial clone with missing historical blobs.
+  A bounded full upstream-history fetch repaired the new repository; repacked
+  locally and removed only this clone's alternate-object dependency. The original
+  research tree and its untracked state were not changed.
