@@ -15,7 +15,7 @@
 
 #define FUNCTIONS(X) \
  X(DestroyInstance) X(EnumeratePhysicalDevices) X(GetPhysicalDeviceProperties2) \
- X(GetPhysicalDeviceFeatures) X(EnumerateDeviceExtensionProperties) \
+ X(GetPhysicalDeviceFeatures) X(GetPhysicalDeviceFeatures2) X(EnumerateDeviceExtensionProperties) \
  X(GetPhysicalDeviceMemoryProperties) X(GetPhysicalDeviceQueueFamilyProperties) \
  X(CreateDevice) X(GetDeviceQueue) X(DestroyDevice) X(CreateBuffer) X(DestroyBuffer) \
  X(GetBufferMemoryRequirements) X(AllocateMemory) X(FreeMemory) X(BindBufferMemory) \
@@ -129,8 +129,20 @@ smoke(const char *library, const char *expect, const char *output)
    else REQUIRE(driver.driverID == VK_DRIVER_ID_ARM_PROPRIETARY, "not stock Arm driver");
    VkPhysicalDeviceFeatures feats;
    vkGetPhysicalDeviceFeatures(gpu, &feats);
-   printf("features logicOp=%u alphaToOne=%u fillModeNonSolid=%u shaderClipDistance=%u geometryShader=%u\n",
-          feats.logicOp, feats.alphaToOne, feats.fillModeNonSolid, feats.shaderClipDistance, feats.geometryShader);
+   printf("features logicOp=%u alphaToOne=%u fillModeNonSolid=%u shaderClipDistance=%u geometryShader=%u independentBlend=%u\n",
+          feats.logicOp, feats.alphaToOne, feats.fillModeNonSolid, feats.shaderClipDistance, feats.geometryShader, feats.independentBlend);
+   VkPhysicalDeviceScalarBlockLayoutFeatures scalar = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+   VkPhysicalDeviceLineRasterizationFeaturesEXT lines = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT, .pNext = &scalar};
+   VkPhysicalDeviceCustomBorderColorFeaturesEXT border = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT, .pNext = &lines};
+   VkPhysicalDeviceRobustness2FeaturesEXT robust = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT, .pNext = &border};
+   VkPhysicalDeviceFeatures2 queried = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &robust};
+   vkGetPhysicalDeviceFeatures2(gpu, &queried);
+   printf("zink_preflight nullDescriptor=%u customBorderColorWithoutFormat=%u scalarBlockLayout=%u "
+          "rectangularLines=%u bresenhamLines=%u smoothLines=%u stippledRectangularLines=%u "
+          "stippledBresenhamLines=%u stippledSmoothLines=%u\n", robust.nullDescriptor,
+          border.customBorderColorWithoutFormat, scalar.scalarBlockLayout, lines.rectangularLines,
+          lines.bresenhamLines, lines.smoothLines, lines.stippledRectangularLines,
+          lines.stippledBresenhamLines, lines.stippledSmoothLines);
    uint32_t nq = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(gpu, &nq, NULL);
    VkQueueFamilyProperties *queues = calloc(nq, sizeof(*queues));

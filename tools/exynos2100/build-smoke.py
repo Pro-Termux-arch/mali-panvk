@@ -29,6 +29,8 @@ def main():
     subprocess.run([str(cc), "-std=c11", "-O2", "-g", "-Wall", "-Wextra", "-Werror",
                     "-I" + str(ROOT / "include"), "-I" + str(a.out), str(src / "smoke.c"),
                     "-ldl", "-o", str(a.out / "exynos-smoke")], check=True)
+    subprocess.run([str(cc), "-std=c11", "-O2", "-g", "-Wall", "-Wextra", "-Werror",
+                    str(src / "kbase-probe.c"), "-o", str(a.out / "kbase-probe")], check=True)
 
 if __name__ == "__main__":
     main()

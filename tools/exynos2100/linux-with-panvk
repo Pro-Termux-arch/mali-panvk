@@ -1,0 +1,9 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Process-local glibc ICD selection. Does not set GL versions or global state.
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+[ "$#" -gt 0 ] || { echo 'usage: with-panvk <native Linux Vulkan command> [args]' >&2; exit 2; }
+export VK_DRIVER_FILES="$ROOT/exynos2100.json"
+export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
+exec "$@"
