@@ -275,6 +275,9 @@ struct kbase_queue {
 
 struct kbase_kmod_dev {
    struct pan_kmod_dev base;
+   /* Owned only by the object that performed this mmap. dup()ed contexts must
+    * never unmap another object's tracking page. */
+   void *tracking_page;
    struct kbase_kmod_vm *vm;
    uint32_t next_handle;
    struct kbase_queue queue;
@@ -470,6 +473,7 @@ kbase_kmod_dev_create(int fd, uint32_t flags, const struct pan_kmod_allocator *a
       return NULL;
    }
    memset(kbase_dev, 0, sizeof(*kbase_dev));
+   kbase_dev->tracking_page = MAP_FAILED;
 
    /* The handshake, in the order the vendor driver performs it. VERSION_CHECK VALIDATES rather
     * than reports: the payload comes back unchanged, so a mismatched pair is refused by the
@@ -506,8 +510,9 @@ kbase_kmod_dev_create(int fd, uint32_t flags, const struct pan_kmod_allocator *a
        * vendor uses successfully. That is what the failure looks like, so it invites blaming the
        * allocation flags rather than the setup. This is the vendor's own order, read off the
        * captured trace. */
-      if (mmap(NULL, 4096, PROT_NONE, MAP_SHARED, fd, BASE_MEM_MAP_TRACKING_HANDLE) ==
-          MAP_FAILED) {
+      kbase_dev->tracking_page =
+         mmap(NULL, 4096, PROT_NONE, MAP_SHARED, fd, BASE_MEM_MAP_TRACKING_HANDLE);
+      if (kbase_dev->tracking_page == MAP_FAILED) {
          mesa_loge("kbase: failed to map the tracking page (err=%d)", errno);
          goto err_free_dev;
       }
@@ -567,6 +572,8 @@ kbase_kmod_dev_create(int fd, uint32_t flags, const struct pan_kmod_allocator *a
    return &kbase_dev->base;
 
 err_free_dev:
+   if (kbase_dev->tracking_page != MAP_FAILED)
+      munmap(kbase_dev->tracking_page, 4096);
    pan_kmod_free(allocator, kbase_dev);
    return NULL;
 }
@@ -578,6 +585,10 @@ kbase_kmod_dev_destroy(struct pan_kmod_dev *dev)
 
    kbase_csf_dev_finish(kbase_dev);
    kbase_queue_finish(kbase_dev);
+   /* Retain tracking until all queues and their mappings have been retired.
+    * Closing the fd alone does not remove this VMA or its kernel reference. */
+   if (kbase_dev->tracking_page != MAP_FAILED)
+      munmap(kbase_dev->tracking_page, 4096);
    pan_kmod_dev_cleanup(dev);
    pan_kmod_free(dev->allocator, kbase_dev);
 }

@@ -6,3 +6,5 @@
 /subprojects/packagecache/
 *.pyc
 __pycache__/
+/build-host
+/subprojects/.wraplock
