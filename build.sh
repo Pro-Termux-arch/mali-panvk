@@ -6,6 +6,8 @@
 #   first stage builds host tools that need LLVM.
 #   BUILD_DIR overrides the Android build directory (default: build-android).
 #   GRALLOC=0 builds without the libui gralloc backend (see README.md, Gralloc).
+#   HOST_BUILD_DIR reuses host tools built from this same source revision.
+#   JOBS bounds both Ninja builds (default: 4).
 #
 # Two stages:
 #   1. build-host: mesa_clc, vtn_bindgen2 and panfrost_compile, native, from this tree. They
@@ -46,7 +48,9 @@ for tool in meson ninja python3 pkg-config glslangValidator; do
 done
 
 # --- stage 1: host tools ----------------------------------------------------------------------
-HOSTB=build-host
+HOSTB="${HOST_BUILD_DIR:-build-host}"
+JOBS="${JOBS:-4}"
+case "$JOBS" in ''|*[!0-9]*|0) echo 'error: JOBS must be a positive integer' >&2; exit 1 ;; esac
 if [ ! -f "$HOSTB/build.ninja" ]; then
    meson setup "$HOSTB" \
       -Dbuildtype=debugoptimized \
@@ -57,12 +61,12 @@ if [ ! -f "$HOSTB/build.ninja" ]; then
       -Dallow-fallback-for=libdrm --force-fallback-for=libdrm,expat,zlib \
       -Dlibdrm:default_library=static
 fi
-ninja -C "$HOSTB" src/compiler/clc/mesa_clc src/compiler/spirv/vtn_bindgen2 \
+ninja -j "$JOBS" -C "$HOSTB" src/compiler/clc/mesa_clc src/compiler/spirv/vtn_bindgen2 \
    src/panfrost/clc/panfrost_compile
 mkdir -p "$HOSTB/bin"
 cp "$HOSTB/src/compiler/clc/mesa_clc" "$HOSTB/src/compiler/spirv/vtn_bindgen2" \
    "$HOSTB/src/panfrost/clc/panfrost_compile" "$HOSTB/bin/"
-PATH="$PWD/$HOSTB/bin:$PATH"
+PATH="$(cd "$HOSTB/bin" && pwd):$PATH"
 export PATH
 
 # --- stage 2: the driver ----------------------------------------------------------------------
@@ -75,7 +79,10 @@ if [ "${GRALLOC:-1}" != 0 ]; then
    GRALLOC_DEPS="$PWD/$BUILD/gralloc"
    rm -rf "$GRALLOC_DEPS"
    mkdir -p "$GRALLOC_DEPS"
-   cp -r android/gralloc/include android/gralloc/abi_override "$GRALLOC_DEPS/"
+   cp -r android/gralloc/include "$GRALLOC_DEPS/"
+   python3 android/gralloc/mkabi.py \
+      "$BIN/../sysroot/usr/include/c++/v1/__config_site" \
+      "$GRALLOC_DEPS/abi_override/c++/v1"
    python3 android/gralloc/mkstubs.py "$BIN/aarch64-linux-android31-clang" "$GRALLOC_DEPS/libs-a12"
 fi
 
@@ -116,7 +123,7 @@ else
    meson configure "$BUILD" -Dxclipse-gralloc-deps="$GRALLOC_DEPS"
 fi
 
-ninja -C "$BUILD" src/panfrost/vulkan/libvulkan_panfrost.so
+ninja -j "$JOBS" -C "$BUILD" src/panfrost/vulkan/libvulkan_panfrost.so
 
 mkdir -p dist
 "$BIN/llvm-strip" -o "$BUILD/libvulkan_panfrost.so" "$BUILD/src/panfrost/vulkan/libvulkan_panfrost.so"

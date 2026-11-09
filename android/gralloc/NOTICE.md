@@ -33,6 +33,11 @@ The NDK's libc++ configuration header with one change, marked in the file: the i
 `__1` (the Android platform's libc++) instead of `__ndk1`. Only the gralloc file is compiled with
 it, because the platform libraries it calls pass `std::` types across their interface.
 
+The device branch generates this overlay with `mkabi.py` from the **selected
+NDK's** `__config_site`, retaining its LLVM license header. Only the namespace is
+changed. The checked-in historical overlay is retained for provenance, but is
+not used by build.sh; mixing it with older NDK headers breaks feature macros.
+
 ## Link stubs (`stubs.txt`, `mkstubs.py`)
 
 The driver has to be linked against `libui.so`, `libutils.so`, `libcutils.so`, `liblog.so`,
