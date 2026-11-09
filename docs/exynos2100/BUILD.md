@@ -120,3 +120,10 @@ Uses installed SDK 36, build-tools 36.0.0, CMake 3.22.1, JDK 21, no Gradle or
 Maven downloads. The APK is locally test-signed, debuggable, has no requested
 permissions, and embeds all third-party notices plus source pins and driver hash.
 The signing key stays in ignored `build-app/`; it is not a production signing key.
+
+The APK also compiles the pinned PanProbe DXVK/VKD3D query gates as app-local
+modules via `build-panprobe-checks.py`. Only their GPU-selection predicate is
+adapted: vendor 0x13b5 + integrated G78 replaces the obsolete name-only "Mali"
+match. No feature requirement is weakened. These modules query the isolated
+**Android loader**, so loader-owned `VK_KHR_swapchain` is counted correctly.
+This is not a Wine/DXVK/VKD3D gameplay test.

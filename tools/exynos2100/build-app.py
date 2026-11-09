@@ -78,6 +78,10 @@ def main():
         "-landroid", "-llog", "-ldl", "-o", out / "lib/arm64-v8a/libexynospresent.so")
     for name in ("hook_impl", "main_hook"):
         shutil.copyfile(out / f"adrenotools/src/hook/lib{name}.so", out / f"lib/arm64-v8a/lib{name}.so")
+    run("python3", ROOT / "tools/exynos2100/build-panprobe-checks.py", "--panprobe", a.panprobe,
+        "--ndk", a.ndk, "--out", out / "preflights", "--shared")
+    for name in ("dxvk_reqs", "vkd3d_reqs"):
+        shutil.copyfile(out / f"preflights/lib{name}.so", out / f"lib/arm64-v8a/lib{name}.so")
     shutil.copyfile(a.driver, out / "lib/arm64-v8a/libvulkan_panfrost.so")
     run(bt / "aapt2", "link", "-o", out / "base.apk", "-I", jar,
         "--manifest", src / "AndroidManifest.xml", "--java", out / "generated")
@@ -90,7 +94,10 @@ def main():
         z.write(out / "dex/classes.dex", "classes.dex")
         for lib in sorted((out / "lib").rglob("*.so")): z.write(lib, lib.relative_to(out))
         z.writestr("assets/NOTICE.txt", b"\n\n".join(f.read_bytes() for f in notices))
-        z.writestr("assets/provenance.json", json.dumps(dict(PINS, driver_sha256=package.sha(a.driver.read_bytes())), indent=2))
+        z.writestr("assets/provenance.json", json.dumps(dict(PINS,
+            integration_revision=package.git("rev-parse", "HEAD"),
+            integration_dirty=bool(package.git("status", "--porcelain", "--untracked-files=no")),
+            driver_sha256=package.sha(a.driver.read_bytes())), indent=2))
     run(bt / "zipalign", "-P", "16", "-f", "4", out / "base.apk", out / "aligned.apk")
     key = out / "local-test.keystore"
     if not key.exists():

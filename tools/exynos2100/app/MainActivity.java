@@ -41,8 +41,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 if (!identity.startsWith("PASS ")) result = identity;
                 else {
                     runOnUiThread(() -> status.append(identity + "\n"));
+                    String queries = Native.preflight(dir, getFilesDir().getAbsolutePath());
+                    runOnUiThread(() -> status.append(queries + " (queries only; not game tests)\n"));
                     String log = new File(getFilesDir(), "present.log").getAbsolutePath();
-                    result = identity + "\n" + Native.swapchainTest(
+                    result = identity + "\n" + queries + "\n" + Native.swapchainTest(
                             dir + "/libexynospresent.so", holder.getSurface(), log);
                 }
             } catch (Throwable error) { result = "FAIL " + error; }

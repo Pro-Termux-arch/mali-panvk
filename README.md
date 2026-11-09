@@ -1,5 +1,18 @@
 # PanVK for Mali on kbase
 
+> **Exynos 2100 device branch — experimental, process-local only.**
+> This fork adds a tested G78 tracking-map leak fix, installed-NDK gralloc ABI
+> generation, validated deterministic ZIP packaging, an isolated Android
+> presentation APK, and a separate limited glibc AArch64 ICD.
+> Start with [device results](docs/exynos2100/RESULTS.md),
+> [build instructions](docs/exynos2100/BUILD.md), and
+> [installation/rollback](docs/exynos2100/DEPLOYMENT.md).
+> Zink, Firefox, Minecraft and DXVK gameplay are **not** validated by this fork.
+> Do not flash this or install it as a KernelSU module/global GPU replacement.
+>
+> The upstream feature/support claims below are retained for attribution and
+> context; they are not this fork's conformance or application-test results.
+
 A port of Mesa's PanVK Vulkan driver to Arm Mali GPUs on stock Android, based on Mesa
 27.0.0-devel. It runs on the kernel driver the phone already has (Arm's kbase, `/dev/mali0`), so it
 needs no root and no custom kernel.

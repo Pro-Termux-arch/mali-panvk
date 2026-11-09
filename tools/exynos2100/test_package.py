@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: MIT
 import importlib.util
 import io
+import json
+import os
 from pathlib import Path
 import struct
+import tempfile
 import unittest
 import zipfile
 
@@ -52,6 +55,38 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(a)) as z:
             self.assertEqual(z.namelist(), ["a", "b"])
             self.assertEqual(z.getinfo("a").external_attr >> 16, 0o100644)
+
+
+@unittest.skipUnless(os.environ.get("PANVK_TEST_ZIP"), "set PANVK_TEST_ZIP for artifact integration tests")
+class ArtifactTests(unittest.TestCase):
+    def setUp(self):
+        self.source = Path(os.environ["PANVK_TEST_ZIP"])
+
+    def test_real_artifact(self):
+        manifest = package.verify(self.source)
+        self.assertEqual(manifest["target"], "aarch64-linux-android31")
+
+    def altered(self, change):
+        with zipfile.ZipFile(self.source) as z:
+            files = {n: z.read(n) for n in z.namelist()}
+        change(files)
+        preferred = "/tmp/opencode" if Path("/tmp/opencode").is_dir() else None
+        with tempfile.TemporaryDirectory(dir=preferred) as tmp:
+            path = Path(tmp) / "altered.zip"
+            path.write_bytes(package.archive_bytes(files, 1700000000))
+            with self.assertRaises(ValueError): package.verify(path)
+
+    def test_corrupt_library_rejected(self):
+        def corrupt(files):
+            b = bytearray(files[package.LIBRARY]); b[-1] ^= 1
+            files[package.LIBRARY] = bytes(b)
+        self.altered(corrupt)
+
+    def test_unsafe_loader_directory_rejected(self):
+        def corrupt(files):
+            meta = json.loads(files["meta.json"]); meta["name"] = "../escape"
+            files["meta.json"] = json.dumps(meta).encode()
+        self.altered(corrupt)
 
 
 if __name__ == "__main__":

@@ -39,5 +39,7 @@ cat > "$OUT/exynos2100.json" <<'EOF'
 {"file_format_version":"1.0.0","ICD":{"library_path":"./lib/libvulkan_panfrost.so","api_version":"1.4.0"}}
 EOF
 git rev-parse HEAD > "$OUT/SOURCE_REVISION"
-(cd "$OUT" && sha256sum lib/libvulkan_panfrost.so exynos2100.json with-panvk NOTICE.txt FORK-NOTICE.txt README.md SOURCE_REVISION > SHA256SUMS)
+# Record the exact built-in identity too, including a possible dirty marker.
+cp "$BUILD/src/git_sha1.h" "$OUT/BUILD_IDENTITY.h"
+(cd "$OUT" && sha256sum lib/libvulkan_panfrost.so exynos2100.json with-panvk NOTICE.txt FORK-NOTICE.txt README.md SOURCE_REVISION BUILD_IDENTITY.h > SHA256SUMS)
 echo "$OUT (offscreen/compute only; no Linux window-system integration claimed)"
