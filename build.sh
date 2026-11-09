@@ -108,7 +108,7 @@ EOF
 
 if [ ! -f "$BUILD/build.ninja" ]; then
    meson setup "$BUILD" --cross-file "$BUILD/cross.ini" \
-      -Dbuildtype=debugoptimized -Db_ndebug=true \
+      --prefix=/usr -Dlibdir=lib -Dbuildtype=debugoptimized -Db_ndebug=true \
       -Dplatforms=android -Dplatform-sdk-version=31 -Dandroid-stub=true -Dandroid-strict=false \
       -Dandroid-libbacktrace=disabled \
       -Dvulkan-drivers=panfrost -Dgallium-drivers= -Dvulkan-layers= -Dtools= -Dvideo-codecs= \
@@ -120,11 +120,17 @@ if [ ! -f "$BUILD/build.ninja" ]; then
       -Dlibdrm:default_library=static -Dexpat:default_library=static -Dzlib:default_library=static
 else
    # An existing build directory follows GRALLOC too.
-   meson configure "$BUILD" -Dxclipse-gralloc-deps="$GRALLOC_DEPS"
+   meson configure "$BUILD" --prefix=/usr -Dlibdir=lib -Dxclipse-gralloc-deps="$GRALLOC_DEPS"
 fi
 
-ninja -j "$JOBS" -C "$BUILD" src/panfrost/vulkan/libvulkan_panfrost.so
+ninja -j "$JOBS" -C "$BUILD" src/panfrost/vulkan/libvulkan_panfrost.so \
+   src/panfrost/vulkan/panfrost_icd.aarch64.json
+
+# Install into a private staging directory so Meson removes its build-only
+# $ORIGIN/../../android_stub RUNPATH. Never ship or install link stubs.
+meson install -C "$BUILD" --no-rebuild --skip-subprojects --tags runtime \
+   --destdir "$(cd "$BUILD" && pwd)/staging"
 
 mkdir -p dist
-"$BIN/llvm-strip" -o "$BUILD/libvulkan_panfrost.so" "$BUILD/src/panfrost/vulkan/libvulkan_panfrost.so"
+"$BIN/llvm-strip" -o "$BUILD/libvulkan_panfrost.so" "$BUILD/staging/usr/lib/libvulkan_panfrost.so"
 python3 android/package.py "$BUILD/libvulkan_panfrost.so" dist
